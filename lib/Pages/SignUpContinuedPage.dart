@@ -1,18 +1,19 @@
 import 'package:flutter/material.dart';
-import 'package:bukidlink/Widgets/SignupandLogin/WelcomeText.dart';
-import 'package:bukidlink/Widgets/SignupandLogin/LoginorSigninButton.dart';
+import 'package:bukidlink/utils/constants/AppColors.dart';
+import 'package:bukidlink/utils/constants/AppTextStyles.dart';
+import 'package:bukidlink/Widgets/auth/AuthButton.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/UsernameField.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/PasswordField.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/ConfirmPasswordField.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/FarmAddress.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/FarmName.dart';
 import 'package:bukidlink/utils/PageNavigator.dart';
-import 'package:bukidlink/Widgets/CustomBackButton.dart';
 import 'package:bukidlink/Pages/LoadingPage.dart';
 import 'package:bukidlink/models/User.dart';
 import 'package:bukidlink/models/Farm.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:bukidlink/services/UserService.dart';
+import 'package:bukidlink/Widgets/auth/AuthPageLayout.dart';
 
 class SignUpContinuedPage extends StatefulWidget {
   final String firstName;
@@ -43,21 +44,16 @@ class _SignUpContinuedPageState extends State<SignUpContinuedPage> {
   final TextEditingController farmAddressController = TextEditingController();
   final TextEditingController farmNameController = TextEditingController();
   final GlobalKey<FormState> formKey = GlobalKey<FormState>();
-  final ValueNotifier<String> accountType = ValueNotifier<String>('Sign Up');
   String? forceErrorText;
   bool isLoading = false;
 
   @override
-  void initState() {
-    super.initState();
-    accountType.value =
-        widget.accountType; // <-- set the value from the previous page
-  }
-
   void dispose() {
     usernameController.dispose();
     passwordController.dispose();
     confirmPasswordController.dispose();
+    farmAddressController.dispose();
+    farmNameController.dispose();
     super.dispose();
   }
 
@@ -79,29 +75,22 @@ class _SignUpContinuedPageState extends State<SignUpContinuedPage> {
     setState(() => isLoading = true);
 
     try {
-      // Create User model with all collected data
       final user = User(
         id: '',
-        // Firebase will generate the UID, we'll use empty string for now
         username: usernameController.text,
         password: passwordController.text,
-        // Plain password - Firebase handles hashing
         firstName: widget.firstName,
         lastName: widget.lastName,
         emailAddress: widget.emailAddress,
         address: widget.address,
         contactNumber: widget.contactNumber,
         profilePic: '/images/default_profile.png',
-        // Default empty, can be set later
-        type: accountType
-            .value, // Use the selected account type (Consumer or Farmer)
+        type: widget.accountType,
         createdAt: DateTime.now(),
         updatedAt: DateTime.now(),
       );
 
-      // Use UserService to create account and sign in. If registering a Farmer,
-      // create a Farm object from the controllers and call registerFarm.
-      final userCredential = accountType.value == 'Farmer'
+      final userCredential = widget.accountType == 'Farmer'
           ? await UserService().registerFarm(
               user,
               Farm(
@@ -117,15 +106,12 @@ class _SignUpContinuedPageState extends State<SignUpContinuedPage> {
 
       if (context.mounted) {
         setState(() => isLoading = false);
-
         if (userCredential != null) {
-          // Successfully signed up and signed in
           PageNavigator().goTo(
             context,
             LoadingPage(userType: widget.accountType),
           );
         } else {
-          // Sign-up failed
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(content: Text('Sign-up failed. Please try again.')),
           );
@@ -144,106 +130,39 @@ class _SignUpContinuedPageState extends State<SignUpContinuedPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.backgroundYellow,
       resizeToAvoidBottomInset: false,
-      body: _buildContent(context),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    final height = MediaQuery.of(context).size.height;
-    final width = MediaQuery.of(context).size.width;
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 24.0),
-        child: Column(
-          children: [
-            // Top-left back button
-            Padding(
-              padding: const EdgeInsets.only(left: 10.0, top: 20.0),
-              child: Align(
-                alignment: Alignment.topLeft,
-                child: CustomBackButton(
-                  onPressed: () => PageNavigator().goBack(context),
+      body: AuthPageLayout(
+        showBackButton: true,
+        child: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 80.0),
+                const Text('Almost Done!',
+                    style: AppTextStyles.HELLO_THERE_TITLE),
+                const SizedBox(height: 8.0),
+                const Text('Just a few more details',
+                    style: AppTextStyles.CREATE_ACCOUNT_SUBTITLE),
+                const SizedBox(height: 24.0),
+                _buildFields(widget.accountType),
+                const SizedBox(height: 24.0),
+                AuthButton(
+                  onPressed: () => handleSignUp(context),
+                  label: 'Create Account',
                 ),
-              ),
+                const SizedBox(height: 32.0),
+              ],
             ),
-
-            // Greeting text
-            const SizedBox(height: 30.0),
-            const WelcomeText(text: 'Almost Done!'),
-            const SizedBox(height: 20.0),
-
-            // Form container (extracted to helper)
-            _buildFormCard(width, height),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // --- Private builders ---
-
-  Widget _buildFormCard(double width, double height) {
-    return Center(
-      child: Container(
-        width: width * 0.90,
-        height: height * 0.70,
-        decoration: const BoxDecoration(
-          color: Color.fromARGB(255, 160, 190, 92),
-          borderRadius: BorderRadius.all(Radius.circular(20.0)),
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color.fromARGB(255, 200, 230, 108),
-              Color.fromARGB(255, 52, 82, 52),
-            ],
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
-          child: LayoutBuilder(
-            builder: (context, constraints) => _buildFormLayout(constraints),
           ),
         ),
       ),
     );
   }
 
-  Widget _buildFormLayout(BoxConstraints constraints) {
-    return SingleChildScrollView(
-      child: ConstrainedBox(
-        constraints: BoxConstraints(minHeight: constraints.maxHeight),
-        child: IntrinsicHeight(child: _buildForm()),
-      ),
-    );
-  }
-
-  Widget _buildForm() {
-    return Form(
-      key: formKey,
-      child: ValueListenableBuilder<String>(
-        valueListenable: accountType,
-        builder: (context, tab, _) {
-          return Column(
-            crossAxisAlignment: CrossAxisAlignment.center,
-            children: [
-              const SizedBox(height: 50.0),
-              _buildFields(tab),
-              const SizedBox(height: 16.0),
-              const Spacer(),
-              _buildSubmitButton(tab),
-              const SizedBox(height: 16.0),
-            ],
-          );
-        },
-      ),
-    );
-  }
-
-  Widget _buildFields(String tab) {
+  Widget _buildFields(String accountType) {
     return Column(
       children: [
         EmailField(
@@ -252,15 +171,19 @@ class _SignUpContinuedPageState extends State<SignUpContinuedPage> {
           forceErrorText: forceErrorText,
           onChanged: onChanged,
         ),
+        const SizedBox(height: 16.0),
         PasswordField(
           controller: passwordController,
           mode: 'SignUp',
           forceErrorText: null,
           onChanged: onChanged,
         ),
+        const SizedBox(height: 16.0),
         ConfirmPasswordField(controller: confirmPasswordController),
-        if (tab == 'Farmer') ...[
+        if (accountType == 'Farmer') ...[
+          const SizedBox(height: 16.0),
           FarmNameField(controller: farmNameController, onChanged: onChanged),
+          const SizedBox(height: 16.0),
           FarmAddressField(
             controller: farmAddressController,
             onChanged: onChanged,
@@ -268,16 +191,5 @@ class _SignUpContinuedPageState extends State<SignUpContinuedPage> {
         ],
       ],
     );
-  }
-
-  Widget _buildSubmitButton(String tab) {
-    return LoginorSigninButton(
-      onPressed: () => handleSignUp(context),
-      mode: tab,
-    );
-  }
-
-  void goBack(BuildContext context) {
-    PageNavigator().goBack(context);
   }
 }

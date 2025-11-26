@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
-import 'package:bukidlink/Widgets/SignupandLogin/WelcomeText.dart';
-import 'package:bukidlink/Widgets/SignupandLogin/LoginorSigninButton.dart';
+import 'package:bukidlink/utils/constants/AppColors.dart';
+import 'package:bukidlink/utils/constants/AppTextStyles.dart';
+import 'package:bukidlink/Widgets/auth/AuthButton.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/FirstNameField.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/LastNameField.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/EmailAddressField.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/AddressField.dart';
 import 'package:bukidlink/Widgets/SignupandLogin/ContactNumberField.dart';
 import 'package:bukidlink/utils/PageNavigator.dart';
-import 'package:bukidlink/Widgets/CustomBackButton.dart';
 import 'package:bukidlink/Pages/SignUpContinuedPage.dart';
 import 'package:bukidlink/services/google_auth.dart';
 import 'package:bukidlink/Pages/LoadingPage.dart';
+import 'package:bukidlink/Widgets/auth/AuthPageLayout.dart';
 
 class SignUpPage extends StatefulWidget {
   const SignUpPage({super.key});
@@ -30,6 +31,7 @@ class _SignUpPageState extends State<SignUpPage> {
   String? forceErrorText;
   bool isLoading = false;
 
+  @override
   void dispose() {
     firstNameController.dispose();
     lastNameController.dispose();
@@ -47,7 +49,6 @@ class _SignUpPageState extends State<SignUpPage> {
     }
   }
 
-  // Handler for Google Sign-In using existing FirebaseService
   void handleGoogleSignIn(BuildContext context) async {
     setState(() => isLoading = true);
     try {
@@ -55,7 +56,6 @@ class _SignUpPageState extends State<SignUpPage> {
       if (context.mounted) {
         setState(() => isLoading = false);
         if (userCredential != null) {
-          // Navigate to loading/main flow on successful sign-in
           PageNavigator().goTo(context, LoadingPage(userType: 'Consumer'));
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -80,18 +80,6 @@ class _SignUpPageState extends State<SignUpPage> {
       return;
     }
 
-    setState(() => isLoading = true);
-    // final String? errorText = await validateInputFromDatabase({
-    // });
-
-    // if(context.mounted) {
-    //   setState(() => isLoading = false);
-    //   if(errorText != null) {
-    //     setState(() {
-    //       forceErrorText = errorText;
-    //     });
-    //   }
-    // }
     PageNavigator().goToAndKeep(
       context,
       SignUpContinuedPage(
@@ -108,256 +96,91 @@ class _SignUpPageState extends State<SignUpPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      backgroundColor: AppColors.backgroundYellow,
       resizeToAvoidBottomInset: false,
-      body: _buildContent(context),
-    );
-  }
-
-  Widget _buildContent(BuildContext context) {
-    final width = MediaQuery.of(context).size.width;
-
-    return SafeArea(
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.only(bottom: 24.0),
-        child: Column(
-          children: [
-            // Top-left back button
-            Align(
-              alignment: Alignment.topLeft,
-              child: Padding(
-                padding: const EdgeInsets.only(left: 10.0, top: 20.0),
-                child: CustomBackButton(
-                  onPressed: () => PageNavigator().goBack(context),
-                ),
-              ),
-            ),
-
-            // Greeting area
-            const SizedBox(height: 20.0),
-            const WelcomeText(text: 'Hello There!'),
-            const SizedBox(height: 20.0),
-
-            // The rounded form container. Removed fixed height so it can size naturally
-            Padding(
-              padding: const EdgeInsets.only(top: 10.0, bottom: 20.0),
-              child: Center(
-                child: Container(
-                  width: width * 0.90,
-                  // No fixed height to allow the container to grow and the SingleChildScrollView to scroll
-                  decoration: BoxDecoration(
-                    borderRadius: const BorderRadius.all(Radius.circular(20.0)),
-                    gradient: LinearGradient(
-                      begin:
-                          Alignment.topCenter, // Starting point of the gradient
-                      end: Alignment
-                          .bottomCenter, // Ending point of the gradient
-                      colors: [
-                        const Color.fromARGB(
-                          255,
-                          200,
-                          230,
-                          108,
-                        ), // First color in the gradient
-                        const Color.fromARGB(
-                          255,
-                          52,
-                          82,
-                          52,
-                        ), // Second color in the gradient
-                      ],
-                      stops: [0.0, 1.0], // Optional: Define color distribution
+      body: AuthPageLayout(
+        showBackButton: true,
+        child: SingleChildScrollView(
+          child: Form(
+            key: formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.center,
+              children: [
+                const SizedBox(height: 80.0),
+                const Text('Create Account',
+                    style: AppTextStyles.HELLO_THERE_TITLE),
+                const SizedBox(height: 8.0),
+                const Text('Get started on your journey!',
+                    style: AppTextStyles.CREATE_ACCOUNT_SUBTITLE),
+                const SizedBox(height: 24.0),
+                Row(
+                  children: [
+                    Expanded(
+                      child: FirstNameField(controller: firstNameController),
                     ),
-                  ),
-                  child: Form(
-                    key: formKey,
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                        horizontal: 16.0,
-                        vertical: 24.0,
-                      ),
-                      child: ValueListenableBuilder<String>(
-                        valueListenable: activeTab,
-                        builder: (context, tab, _) {
-                          return Column(
-                            mainAxisSize: MainAxisSize.min,
-                            crossAxisAlignment: CrossAxisAlignment.center,
-                            children: [
-                              const SizedBox(height: 10.0),
-
-                              // --- Input fields ---
-                              Row(
-                                children: [
-                                  Expanded(
-                                    flex: 1,
-                                    child: FirstNameField(
-                                      controller: firstNameController,
-                                    ),
-                                  ),
-                                  const SizedBox(width: 8.0),
-                                  Expanded(
-                                    flex: 1,
-                                    child: LastNameField(
-                                      controller: lastNameController,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                              const SizedBox(height: 8.0),
-                              EmailAddressField(
-                                controller: emailAddressController,
-                              ),
-                              const SizedBox(height: 8.0),
-                              AddressField(
-                                controller: addressController,
-                                onChanged: onChanged,
-                              ),
-                              const SizedBox(height: 8.0),
-                              ContactNumberField(
-                                controller: contactNumberController,
-                              ),
-                              const SizedBox(height: 12.0),
-
-                              Text(
-                                'Account Type',
-                                style: TextStyle(fontWeight: FontWeight.bold),
-                              ),
-                              const SizedBox(height: 8.0),
-                              Container(
-                                width: 220,
-                                height: 50,
-                                decoration: BoxDecoration(
-                                  color: Colors.grey.shade300,
-                                  borderRadius: BorderRadius.circular(50),
-                                ),
-                                child: Row(
-                                  mainAxisAlignment:
-                                      MainAxisAlignment.spaceBetween,
-                                  children: [
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () =>
-                                            activeTab.value = 'Consumer',
-                                        child: AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 200,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: tab == 'Consumer'
-                                                ? const Color.fromARGB(
-                                                    255,
-                                                    202,
-                                                    232,
-                                                    109,
-                                                  )
-                                                : Colors.transparent,
-                                            borderRadius: BorderRadius.circular(
-                                              50,
-                                            ),
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            'Consumer',
-                                            style: TextStyle(
-                                              color: tab == 'Consumer'
-                                                  ? Colors.black
-                                                  : Colors.grey[700],
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                    Expanded(
-                                      child: GestureDetector(
-                                        onTap: () => activeTab.value = 'Farmer',
-                                        child: AnimatedContainer(
-                                          duration: const Duration(
-                                            milliseconds: 200,
-                                          ),
-                                          decoration: BoxDecoration(
-                                            color: tab == 'Farmer'
-                                                ? const Color.fromARGB(
-                                                    255,
-                                                    202,
-                                                    232,
-                                                    109,
-                                                  )
-                                                : Colors.transparent,
-                                            borderRadius: BorderRadius.circular(
-                                              50,
-                                            ),
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: Text(
-                                            'Farmer',
-                                            style: TextStyle(
-                                              color: tab == 'Farmer'
-                                                  ? Colors.black
-                                                  : Colors.grey[700],
-                                              fontWeight: FontWeight.bold,
-                                            ),
-                                          ),
-                                        ),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ),
-
-                              const SizedBox(height: 20.0),
-                              // Google Sign-In button
-                              SizedBox(
-                                width: 220,
-                                child: ElevatedButton.icon(
-                                  icon: const Icon(Icons.login),
-                                  label: const Text('Continue with Google'),
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Colors.white,
-                                    foregroundColor: Colors.black87,
-                                  ),
-                                  onPressed: () => handleGoogleSignIn(context),
-                                ),
-                              ),
-                              const SizedBox(height: 12.0),
-                              // --- Action button ---
-                              LoginorSigninButton(
-                                onPressed: () {
-                                  if (tab == 'Consumer') {
-                                    handleSignUp(context);
-                                  } else if (tab == 'Farmer') {
-                                    handleSignUp(context); // or go to LoginPage
-                                  }
-                                },
-                                mode: 'SignUp',
-                              ),
-
-                              const SizedBox(height: 30.0),
-                            ],
-                          );
-                        },
-                      ),
+                    const SizedBox(width: 16.0),
+                    Expanded(
+                      child: LastNameField(controller: lastNameController),
                     ),
-                  ),
+                  ],
                 ),
-              ),
+                const SizedBox(height: 16.0),
+                EmailAddressField(controller: emailAddressController),
+                const SizedBox(height: 16.0),
+                AddressField(
+                    controller: addressController, onChanged: onChanged),
+                const SizedBox(height: 16.0),
+                ContactNumberField(controller: contactNumberController),
+                const SizedBox(height: 24.0),
+                const Text('I am a...', style: AppTextStyles.FORM_LABEL),
+                const SizedBox(height: 12.0),
+                _buildAccountTypeToggle(),
+                const SizedBox(height: 24.0),
+                AuthButton(
+                  onPressed: () => handleSignUp(context),
+                  label: 'Sign Up',
+                ),
+                const SizedBox(height: 16.0),
+                AuthButton(
+                  onPressed: () => handleGoogleSignIn(context),
+                  label: 'Continue with Google',
+                  isPrimary: false,
+                ),
+                const SizedBox(height: 32.0),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
   }
 
-  void goBack(BuildContext context) {
-    PageNavigator().goBack(context);
-  }
-
-  Future<String?> validateInputFromServer(
-    String emailAddress,
-    String address,
-    String contactNumber,
-  ) async {
-    // Not implemented yet — return null to indicate "no error" by default.
-    return null;
+  Widget _buildAccountTypeToggle() {
+    return ValueListenableBuilder<String>(
+      valueListenable: activeTab,
+      builder: (context, value, child) {
+        return ToggleButtons(
+          isSelected: [value == 'Consumer', value == 'Farmer'],
+          onPressed: (index) {
+            activeTab.value = index == 0 ? 'Consumer' : 'Farmer';
+          },
+          borderRadius: BorderRadius.circular(30.0),
+          selectedColor: AppColors.BACKGROUND_WHITE,
+          fillColor: AppColors.primaryGreen,
+          color: AppColors.primaryGreen,
+          constraints: const BoxConstraints(minHeight: 48.0, minWidth: 120.0),
+          children: const [
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text('Consumer', style: AppTextStyles.TOGGLE_BUTTON_ACTIVE),
+            ),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16.0),
+              child: Text('Farmer', style: AppTextStyles.TOGGLE_BUTTON_ACTIVE),
+            ),
+          ],
+        );
+      },
+    );
   }
 }
